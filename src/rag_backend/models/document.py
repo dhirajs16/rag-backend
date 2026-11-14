@@ -3,11 +3,15 @@
 import enum
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import BigInteger, DateTime, Enum, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from rag_backend.db.base import Base
+
+if TYPE_CHECKING:
+    from rag_backend.models.document_chunk import DocumentChunk
 
 
 class DocumentStatus(str, enum.Enum):
@@ -51,4 +55,9 @@ class Document(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
+    )
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
+        back_populates="document",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

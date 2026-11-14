@@ -1,9 +1,13 @@
 """Database operations for documents."""
 
+from collections.abc import Sequence
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from rag_backend.chunkers.base import TextChunk
 from rag_backend.models.document import ChunkingStrategy, Document
+from rag_backend.models.document_chunk import DocumentChunk
 
 
 class DocumentRepository:
@@ -27,14 +31,24 @@ class DocumentRepository:
         file_size: int,
         checksum: str,
         chunking_strategy: ChunkingStrategy,
+        chunks: Sequence[TextChunk],
     ) -> Document:
-        """Create and commit document metadata."""
+        """Create a document and all of its chunks in one transaction."""
         document = Document(
             original_filename=original_filename,
             content_type=content_type,
             file_size=file_size,
             checksum=checksum,
             chunking_strategy=chunking_strategy,
+            chunks=[
+                DocumentChunk(
+                    chunk_index=chunk.index,
+                    text=chunk.text,
+                    character_count=len(chunk.text),
+                    page_number=chunk.page_number,
+                )
+                for chunk in chunks
+            ],
         )
         self._session.add(document)
         await self._session.commit()

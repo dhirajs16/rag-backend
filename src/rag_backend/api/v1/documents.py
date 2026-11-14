@@ -10,6 +10,7 @@ from rag_backend.models.document import ChunkingStrategy
 from rag_backend.repositories.document import DocumentRepository
 from rag_backend.schemas.document import DocumentResponse
 from rag_backend.services.ingestion import (
+    ChunkingUnavailableError,
     DocumentTooLargeError,
     DuplicateDocumentError,
     IngestionService,
@@ -35,6 +36,11 @@ async def upload_document(
     except DocumentTooLargeError as error:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=str(error),
+        )
+    except ChunkingUnavailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail=str(error),
         )
     except DuplicateDocumentError as error:

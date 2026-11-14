@@ -7,6 +7,8 @@ from pathlib import Path
 from fastapi import UploadFile
 from sqlalchemy.exc import IntegrityError
 
+from rag_backend.chunkers import get_chunker
+from rag_backend.chunkers.base import ChunkingStrategyUnavailableError
 from rag_backend.core.config import settings
 from rag_backend.extractors import get_extractor
 from rag_backend.extractors.base import ExtractionError
@@ -33,6 +35,10 @@ class DocumentTooLargeError(IngestionError):
 
 class DuplicateDocumentError(IngestionError):
     """Raised when the same file content was previously uploaded."""
+
+
+class ChunkingUnavailableError(IngestionError):
+    """Raised when the requested chunking strategy is not ready for use."""
 
 
 class IngestionService:
@@ -78,9 +84,19 @@ class IngestionService:
 
         extractor = get_extractor(extension)
         try:
-            await asyncio.to_thread(extractor.extract, content)
+            extracted_document = await asyncio.to_thread(extractor.extract, content)
         except ExtractionError as error:
             raise InvalidDocumentError(str(error)) from error
+
+        try:
+            chunker = get_chunker(
+                chunking_strategy,
+                chunk_size=settings.recursive_chunk_size,
+                chunk_overlap=settings.recursive_chunk_overlap,
+            )
+            chunks = await asyncio.to_thread(chunker.split, extracted_document)
+        except ChunkingStrategyUnavailableError as error:
+            raise ChunkingUnavailableError(str(error)) from error
 
         try:
             return await self._repository.create(
@@ -89,6 +105,7 @@ class IngestionService:
                 file_size=len(content),
                 checksum=checksum,
                 chunking_strategy=chunking_strategy,
+                chunks=chunks,
             )
         except IntegrityError as error:
             raise DuplicateDocumentError(
