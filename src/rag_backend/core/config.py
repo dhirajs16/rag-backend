@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://postgres:postgres@localhost:5432/rag_backend"
     )
+    max_upload_size_mb: int = 10
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -30,4 +31,3 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
-

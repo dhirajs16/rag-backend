@@ -12,7 +12,9 @@ dependencies = [
     "fastapi>=0.162.5",
     "psycopg[binary]>=3.3.9",
     "pydantic-settings>=2.16.2",
-    "sqlalchemy>=2.1.8",
+    "pypdf>=7.1.0",
+    "python-multipart>=0.0.33",
+    "sqlalchemy[asyncio]>=2.1.8",
     "uvicorn[standard]>=0.54.0",
 ]
 
