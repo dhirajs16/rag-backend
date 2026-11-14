@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 10
     recursive_chunk_size: int = 1500
     recursive_chunk_overlap: int = 200
+    ollama_url: str = "http://127.0.0.1:11434"
+    embedding_model: str = "embeddinggemma"
+    embedding_batch_size: int = 32
+    qdrant_url: str = "http://127.0.0.1:6333"
+    qdrant_collection: str = "document_chunks"
 
     model_config = SettingsConfigDict(
         env_file=".env",

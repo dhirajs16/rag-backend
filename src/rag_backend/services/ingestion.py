@@ -12,6 +12,8 @@ from rag_backend.chunkers.base import ChunkingStrategyUnavailableError
 from rag_backend.core.config import settings
 from rag_backend.extractors import get_extractor
 from rag_backend.extractors.base import ExtractionError
+from rag_backend.integrations.embeddings.base import EmbeddingError, EmbeddingProvider
+from rag_backend.integrations.vector_store.base import VectorStore, VectorStoreError
 from rag_backend.models.document import ChunkingStrategy, Document
 from rag_backend.repositories.document import DocumentRepository
 
@@ -41,11 +43,22 @@ class ChunkingUnavailableError(IngestionError):
     """Raised when the requested chunking strategy is not ready for use."""
 
 
+class IngestionProcessingError(IngestionError):
+    """Raised when embeddings or vector persistence fail."""
+
+
 class IngestionService:
     """Validate uploads, extract text, and persist their metadata."""
 
-    def __init__(self, repository: DocumentRepository) -> None:
+    def __init__(
+        self,
+        repository: DocumentRepository,
+        embedding_provider: EmbeddingProvider,
+        vector_store: VectorStore,
+    ) -> None:
         self._repository = repository
+        self._embedding_provider = embedding_provider
+        self._vector_store = vector_store
 
     async def ingest(
         self,
@@ -99,7 +112,7 @@ class IngestionService:
             raise ChunkingUnavailableError(str(error)) from error
 
         try:
-            return await self._repository.create(
+            document, stored_chunks = await self._repository.create(
                 original_filename=filename,
                 content_type=content_type,
                 file_size=len(content),
@@ -111,3 +124,17 @@ class IngestionService:
             raise DuplicateDocumentError(
                 "This document has already been uploaded."
             ) from error
+
+        try:
+            embeddings = await self._embedding_provider.embed_texts(
+                [chunk.text for chunk in stored_chunks]
+            )
+            await self._vector_store.upsert_document(
+                document,
+                stored_chunks,
+                embeddings,
+            )
+            return await self._repository.mark_completed(document)
+        except (EmbeddingError, VectorStoreError) as error:
+            await self._repository.mark_failed(document, str(error))
+            raise IngestionProcessingError(str(error)) from error
