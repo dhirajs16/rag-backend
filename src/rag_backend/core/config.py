@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     embedding_batch_size: int = 32
     qdrant_url: str = "http://127.0.0.1:6333"
     qdrant_collection: str = "document_chunks"
+    chat_model: str = "gemma3:1b"
+    chat_temperature: float = 0.1
+    retrieval_top_k: int = 5
+    retrieval_score_threshold: float = 0.2
+    redis_url: str = "redis://127.0.0.1:6379/0"
+    chat_memory_ttl_seconds: int = 86400
+    chat_memory_max_messages: int = 12
 
     model_config = SettingsConfigDict(
         env_file=".env",
