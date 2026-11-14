@@ -1,5 +1,6 @@
 """Document-ingestion orchestration."""
 
+import asyncio
 import hashlib
 from pathlib import Path
 
@@ -7,6 +8,8 @@ from fastapi import UploadFile
 from sqlalchemy.exc import IntegrityError
 
 from rag_backend.core.config import settings
+from rag_backend.extractors import get_extractor
+from rag_backend.extractors.base import ExtractionError
 from rag_backend.models.document import ChunkingStrategy, Document
 from rag_backend.repositories.document import DocumentRepository
 
@@ -33,7 +36,7 @@ class DuplicateDocumentError(IngestionError):
 
 
 class IngestionService:
-    """Validate uploads and persist their metadata."""
+    """Validate uploads, extract text, and persist their metadata."""
 
     def __init__(self, repository: DocumentRepository) -> None:
         self._repository = repository
@@ -43,7 +46,7 @@ class IngestionService:
         file: UploadFile,
         chunking_strategy: ChunkingStrategy,
     ) -> Document:
-        """Validate an upload, calculate its checksum, and persist metadata."""
+        """Validate an upload, extract its text, and persist metadata."""
         filename = Path(file.filename or "").name
         if not filename:
             raise InvalidDocumentError("A filename is required.")
@@ -72,6 +75,12 @@ class IngestionService:
         checksum = hashlib.sha256(content).hexdigest()
         if await self._repository.get_by_checksum(checksum) is not None:
             raise DuplicateDocumentError("This document has already been uploaded.")
+
+        extractor = get_extractor(extension)
+        try:
+            await asyncio.to_thread(extractor.extract, content)
+        except ExtractionError as error:
+            raise InvalidDocumentError(str(error)) from error
 
         try:
             return await self._repository.create(

@@ -25,7 +25,7 @@ async def upload_document(
     chunking_strategy: Annotated[ChunkingStrategy, Form()],
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> DocumentResponse:
-    """Validate an uploaded document and persist its metadata."""
+    """Validate a document, extract its text, and persist its metadata."""
     service = IngestionService(DocumentRepository(session))
 
     try:
