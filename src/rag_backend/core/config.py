@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 10
     recursive_chunk_size: int = 1500
     recursive_chunk_overlap: int = 200
+    semantic_breakpoint_percentile: float = 80.0
+    semantic_min_chunk_size: int = 400
+    semantic_max_chunk_size: int = 1500
     ollama_url: str = "http://127.0.0.1:11434"
     embedding_model: str = "embeddinggemma"
     embedding_batch_size: int = 32

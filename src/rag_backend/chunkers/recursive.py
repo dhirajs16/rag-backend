@@ -18,7 +18,7 @@ class RecursiveCharacterChunker:
         self._chunk_size = chunk_size
         self._chunk_overlap = chunk_overlap
 
-    def split(self, document: ExtractedDocument) -> list[TextChunk]:
+    async def split(self, document: ExtractedDocument) -> list[TextChunk]:
         """Split every page independently so source page metadata is preserved."""
         chunks: list[TextChunk] = []
 

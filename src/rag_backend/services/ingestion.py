@@ -106,10 +106,18 @@ class IngestionService:
                 chunking_strategy,
                 chunk_size=settings.recursive_chunk_size,
                 chunk_overlap=settings.recursive_chunk_overlap,
+                embedding_provider=self._embedding_provider,
+                semantic_breakpoint_percentile=(
+                    settings.semantic_breakpoint_percentile
+                ),
+                semantic_min_chunk_size=settings.semantic_min_chunk_size,
+                semantic_max_chunk_size=settings.semantic_max_chunk_size,
             )
-            chunks = await asyncio.to_thread(chunker.split, extracted_document)
+            chunks = await chunker.split(extracted_document)
         except ChunkingStrategyUnavailableError as error:
             raise ChunkingUnavailableError(str(error)) from error
+        except EmbeddingError as error:
+            raise IngestionProcessingError(str(error)) from error
 
         try:
             document, stored_chunks = await self._repository.create(

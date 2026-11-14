@@ -26,7 +26,6 @@ class TextChunk:
 class DocumentChunker(Protocol):
     """Contract implemented by document chunking strategies."""
 
-    def split(self, document: ExtractedDocument) -> list[TextChunk]:
+    async def split(self, document: ExtractedDocument) -> list[TextChunk]:
         """Split an extracted document into ordered retrieval units."""
         ...
-
